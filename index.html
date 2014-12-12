@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>WebRTC Codecs & Quality</title>
+
+    <!-- Vendors -->
+    <script type="text/javascript" src="./vendor/scripts/sonotone.js"></script>
+
+    <script type="text/javascript" src="./vendor/scripts/jquery.js"></script>
+
+    <script type="text/javascript" src="./vendor/scripts/d3.v3.js"></script>
+    <script type="text/javascript" src="./vendor/scripts/rickshaw.js"></script>
+    <script type="text/javascript" src="./vendor/scripts/rickshaw-legend.js"></script>
+    <script type="text/javascript" src="./vendor/scripts/rickshaw-hover.js"></script>
+    <script type="text/javascript" src="./vendor/scripts/rickshaw-fixtures-time.js"></script>
+    <script type="text/javascript" src="./vendor/scripts/rickshaw-graph-axis-time.js"></script>
+    <script type="text/javascript" src="./vendor/scripts/rickshaw-graph-axis-y.js"></script>
+
+
+    <!-- Vendors styles -->
+    <link rel="stylesheet" href="./vendor/styles/rickshaw.css">
+    <link rel="stylesheet" href="./vendor/styles/rickshaw-legend.css">
+    <link rel="stylesheet" href="./vendor/styles/rickshaw-details.css">
+    
+    <!-- Bootstrap -->
+    <script src="./vendor/scripts/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="./vendor/styles/bootstrap.min.css">
+    <link rel="stylesheet" href="./vendor/styles/bootstrap-theme.min.css">
+    
+
+    <!-- Demo -->
+    <link rel="stylesheet" href="demo.css">
+    <script type="text/javascript" src="demo.js"></script>
+</head>
+
+<body>
+    <div class='webrtc'>
+        <div class='webrtc-topbar'>
+            
+            <nav class="topBar navbar-inverse navbar-default navbar-fixed-top" role="navigation">
+                <div class="container-fluid">
+                    
+                    <div class="navbar-header">
+                        <div class='navbar-participants quality-none' data-toggle="tooltip" data-placement="bottom" data-original-title="Connected">
+                            </div>
+                        <a class="navbar-brand navbar-title" href="index.html">WebRTC Codecs & Quality</a>
+                    </div>
+
+                    <div class="nav navbar-nav navbar-right">
+
+                        <form class="navbar-form navbar-left topBar-menu" role="search">
+
+                            <div class='navbar-audio'>
+                                <label class='navbar-audio-label'>Audio Call &nbsp;</label>
+                                <select class="form-control navbar-audio-codec">
+                                    <option value='opus' selected>Opus</option>
+                                    <option value='g711'>G711</option>
+                                </select>
+
+                                <button type="action" class="btn btn-default btn-pickaudio btn-primary" data-toggle="tooltip" data-placement="bottom" data-original-title="Audio call with microphone only" disabled>
+                                    <i class="btn-pickaudio-icon glyphicon glyphicon-headphones"></i>
+                                </button>
+
+                            </div>
+
+                            <label class='navbar-space'>OR</label>
+
+                            <div class='navbar-video'>
+                                <label class='navbar-video-label'>Video Call&nbsp;</label>
+                                <select class="form-control navbar-video-codec">
+                                    <option value='vp8-opus' selected>VP8 & Opus</option>
+                                    <option value='vp8-g711'>VP8 & G711</option>
+                                    <option value='h264-opus'>H264 & Opus</option>
+                                    <option value='h264-g711'>H264 & G711</option>
+                                </select>
+
+                                <button type="action" class="btn btn-default btn-warning btn-pickvideo" data-toggle="tooltip" data-placement="bottom" data-original-title="Video call with microphone and camera" disabled>
+                                <i class="btn-pickvideo-icon glyphicon glyphicon glyphicon-facetime-video"></i>
+                                </button>
+
+                            </div>
+
+                        </form>
+                    </div>
+
+                </div>
+            </nav>
+        </div>
+
+        <div class='webrtc-container'>
+            <video autoplay="true" class="webrtc-container-remoteVideo"></video>
+            <video autoplay="true" class="webrtc-container-localVideo"></video>
+            <h5 class='webrtc-local-audio hidden'>No video</h5>
+            <h5 class='webrtc-remote-audio hidden'>No video</h5>
+            <h4 class='webrtc-state lead'>FREE</h4>
+
+            <ul class='webrtc-graph' >
+                <li id="chart-audio"></li>
+                <li id="chart-video"></li>
+            </ul>
+
+            <div id="webrtc-legend-audio">
+                <div id="legend-audio"></div>
+                <div id='quality-call-audio' class='quality-none'>-</div>
+                <div id='quality-last-audio' class='quality-none'>-</div>
+            </div>
+
+             <div id="webrtc-legend-video">
+                <div id="legend-video"></div>
+                <div id='quality-call-video' class='quality-none'>-</div>
+                <div id='quality-last-video' class='quality-none'>-</div>
+                <div id='framerate-video' class='quality-none'>-</div>
+            </div>
+            
+        </div>
+
+        <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation">
+            <div class='container'>
+            <p class="navbar-text navbar-right">Developped by <strong>Alcatel-Lucent Enterprise</strong> - Dec'14</p>
+            </div>
+        </nav>
+    </div>
+</body>
+</html>

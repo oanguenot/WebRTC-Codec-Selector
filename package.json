@@ -1,0 +1,31 @@
+{
+  "author": "Olivier Anguenot",
+  "name": "WebRTCQuality",
+  "description": "WebRTC tools for selecting and testing video and audio quality",
+  "version": "0.0.1",
+  "homepage": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": {
+  },
+  "scripts": {
+    "start": "brunch watch --server",
+    "test": "brunch test"
+  },
+  "dependencies": {
+    "brunch": ">= 1.7.0",
+    "javascript-brunch": "~1.7.0",
+    "css-brunch": "~1.7.0",
+    "uglify-js-brunch": ">= 1.0 < 1.8",
+    "clean-css-brunch": "~1.7.1",
+    "jshint-brunch": "~1.7.0"
+  },
+  "devDependencies": {
+    "expect": "~0.1.1",
+    "mocha": "~1.19.0",
+    "websocket": "~1.0.14",
+    "connect": "~2.8.4"
+  }
+}
