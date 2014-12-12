@@ -9,6 +9,8 @@ var port = '1337';
 
 var sono = require('sonotone/io');
 
+var codecUsed = null;
+
 var graphAudio, graphVideo,
     legendAudio, legendVideo, 
     previousAudioPacketsLost = 0, previousVideoPacketsLost = 0,
@@ -234,7 +236,13 @@ function onPeerCallAnswered(data) {
 function onPeerICEConnected(data) {
     console.log("DEMO :: SIG CONNECTED", data);
     if(!inCall) {
-        $('.webrtc-state').text('SIG CONNECTED');    
+
+        if(codecUsed) {
+            //$('.webrtc-state').text(codecUsed.audio.toUpperCase() + ' - ' + codecUsed.video.toUpperCase());
+        }
+        else {
+            $('.webrtc-state').text('SIG CONNECTED');        
+        }
     }
 };
 
@@ -269,9 +277,8 @@ function onPeerEndCall(data) {
   stopCall();
 
   resetLabels();
+  codecUsed = null;
   
-
-
 };
 
 function resetLabels() {
@@ -328,6 +335,7 @@ function onPeerCallVideoEnded(data) {
     console.log("DEMO :: Video ended from peer", data);
     stopCall();
     resetLabels();
+    codecUsed = null;
 };
 
 function onPeerStatReceived(data) {
@@ -515,6 +523,7 @@ function onPeerSDPRemoteMediaUsed(data) {
 function onPeerSDPCodecsNegotiated(data) {
     console.log("DEMO :: Codecs negotiated", data);
     $('.webrtc-state').text(data.audio.toUpperCase() + ' - ' + data.video.toUpperCase());
+    codecUsed = data;
 }
 
 /* ------------------------- Local Media management ----------------------- */

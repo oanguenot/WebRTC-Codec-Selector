@@ -1,4 +1,4 @@
-# WebRTCAudio
+# WebRTCAudio by Alcatel-Lucent
 
 ## Description
 
@@ -6,6 +6,11 @@ WebRTC utility tools for:
 - Selecting Audio and Video codecs
 - Making P2P audio and Video call
 - Checking quality perceived versus packets losts, framerate 
+
+# INSTALL & USE
+- Download and copy all files into your directory
+- Open a command tool and launch npm install (node.js should be installed)
+- Launch node server.js
 
 
 # TODO
