@@ -1,4 +1,4 @@
-# WebRTCAudio by Alcatel-Lucent
+# WebRTC Codecs & Quality Tools by Alcatel-Lucent Enterprise (Dec'14)
 
 ## Description
 
