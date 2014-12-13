@@ -1,0 +1,23 @@
+{
+	"version": "1.0.1",
+	"server": {
+		"host": "192.168.0.126",
+		"port": "1337"
+	},
+	"room": "123456",
+	"constraints": {
+		"video": {
+			"quality": "cam"
+		}
+	},
+	"log": {
+		"interval": 3000,
+		"audio": {
+			"level": 96
+		},
+		"video": {
+			"level": 80,
+			"framerate": 15 
+		}
+	}
+}

@@ -892,8 +892,8 @@ var logger = require('sonotone/others/log');
 
 var turn = {
     url: 'turn:numb.viagenie.ca',
-    credential: 'olivier.anguenot@free.fr',
-    username: 'jabbah75'
+    username: 'olivier.anguenot@free.fr',
+    credential: 'jabbah75'
 };
 
 var stun = {

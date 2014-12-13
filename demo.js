@@ -1,22 +1,4 @@
-var users = {};
-var lastConnected = null;
-var isMediaReady = false;
-var inCall = false;
-var callType = 'full';
-
-var isSecure = false;
-var port = '1337';
-
-var sono = require('sonotone/io');
-
-var codecUsed = null;
-
-var graphAudio, graphVideo,
-    legendAudio, legendVideo, 
-    previousAudioPacketsLost = 0, previousVideoPacketsLost = 0,
-    previousAudioPacketsReceived = 0, previousVideoPacketsReceived = 0;
-    interval = 3000;
-
+// JQUERY extension for disable DOM buttons
 jQuery.fn.extend({
     disable: function(state) {
         return this.each(function() {
@@ -25,128 +7,202 @@ jQuery.fn.extend({
     }
 });
 
+var users = {};
+var lastConnected = null;
+var isMediaReady = false;
+var inCall = false;
+var callType = 'full';
+var config = null;
+var codecUsed = null;
+var sono = null;
+
+var graphAudio, graphVideo,
+    legendAudio, legendVideo, 
+    previousAudioPacketsLost = 0, previousVideoPacketsLost = 0,
+    previousAudioPacketsReceived = 0, previousVideoPacketsReceived = 0;
+
+/* ------------------------ INIT - OnLOAD -------------------------- */
+
 $(function() {
 
+    console.log("[DEMO] >> Application start...");
+
+    // Get Configuration file - synchronous
+    $.ajax({
+        url: 'manifest.json',
+        dataType: 'json',
+        type: "GET",
+        async: false
+    }).done(function ( data ) {
+        console.log("[DEMO] >> Config loaded", data);
+        config = data;
+    }).fail(function ( data ) {
+        console.log("[DEMO] >> Fail loading config file, malformated ?");
+    });
+
+    console.log("[DEMO] >> Running v" + config.version);
+
+    // Once loaded
     $(window).bind('load', function() {
-        console.log("[DEMO] :: Start...");
 
-        // Listener on buttons
-        $('.btn-pickvideo').on('click', acquireVideo);
-        $('.btn-pickaudio').on('click', acquireAudio);
+        // Prepare DOM
+        initDOM();
 
-        $('.btn-startCall').on('click', startCall);
-        $('.btn-stopCall').on('click', stopCall);
-
-        $('.btn-pickaudio').tooltip();
-        $('.btn-pickvideo').tooltip();
-        $('.navbar-participants').tooltip();
-        $('.btn-startCall').tooltip();
-        $('.btn-stopCall').tooltip();        
-
-        // Audio chart
-        graphAudio = new Rickshaw.Graph( {
-            element: document.getElementById("chart-audio"),
-            width: 600,
-            height: 190,
-            renderer: 'area',
-            series: new Rickshaw.Series.FixedDuration(
-                [
-                    { name: 'Audio', color: "#30c020" }
-                ], undefined, {
-                    timeInterval: interval,
-                    maxDataPoints: 100,
-                    timeBase: new Date().getTime() / 1000
-                }
-            ) 
-        });
-
-        graphAudio.render();
-
-        // Audio chart
-        graphVideo = new Rickshaw.Graph( {
-            element: document.getElementById("chart-video"),
-            width: 600,
-            height: 190,
-            renderer: 'area',
-            series: new Rickshaw.Series.FixedDuration(
-                [
-                    { name: 'Video', color: "#c05020" }
-                ], undefined, {
-                    timeInterval: interval,
-                    maxDataPoints: 100,
-                    timeBase: new Date().getTime() / 1000
-                }
-            ) 
-        });
-
-        graphVideo.render();
-
-        legendAudio = new Rickshaw.Graph.Legend({
-            graph: graphAudio,
-            element: document.querySelector('#legend-audio')
-        });
-
-        legendVideo = new Rickshaw.Graph.Legend({
-            graph: graphVideo,
-            element: document.querySelector('#legend-video')
-        });
-
-        var hoverDetailAudio = new Rickshaw.Graph.HoverDetail( {
-            graph: graphAudio
-        });
-
-        var hoverDetailVideo = new Rickshaw.Graph.HoverDetail( {
-            graph: graphVideo
-        });
-
-        var xAxis = new Rickshaw.Graph.Axis.Time({
-            graph: graphVideo
-        });
-
-        xAxis.render();
-
-        var xAxisAudio = new Rickshaw.Graph.Axis.Time({
-            graph: graphAudio
-        });
-
-        xAxisAudio.render();
-
-        var yAxis = new Rickshaw.Graph.Axis.Y({
-            graph: graphVideo
-        });
-
-        yAxis.render();
-
-        var yAxisAudio = new Rickshaw.Graph.Axis.Y({
-            graph: graphAudio
-        });
-
-        yAxisAudio.render();
-
+        // Prepare Sonotone
+        initSonotone();
     });
 });
 
-/* ------------------------ Transport Management -------------------------- */
+/* ------------------------ On load function -------------------------- */
 
-console.log("protocol", window.location.protocol);
-if(window.location.protocol === 'https:') {
-    isSecure = true;
-    port= '443';
+function initSonotone() {
+    sono = require('sonotone/io');   
+
+    var isSecure = false;
+    if(window.location.protocol === 'https:') {
+        isSecure = true;
+    }
+
+    //Alcatel
+    //sono.transport('websocket').connect({host: '172.25.41.180', port: '1337'});
+    //Home
+    sono.transport('websocket').connect({host: config.server.host, port: config.server.port, secure: isSecure});
+
+    // Listen to sig events
+    sono.transport().on('onTransportReady', onTransportReady, this);
+    sono.transport().on('onTransportClosed', onTransportClosed, this);
+    sono.transport().on('onTransportError', onTransportError, this);
+    
+    // LIsten to room events
+    sono.on('onJoinAck', onJoinAck, this);
+
+    // Listen to peer events
+    sono.on('onPeerConnected', onPeerConnected, this);
+    sono.on('onPeerAlreadyConnected', onPeerConnected, this);
+    sono.on('onPeerDisconnected', onPeerDisconnected, this);
+    sono.on('onPeerCallOffered', onPeerCallOffered, this);
+    sono.on('onPeerCallAnswered', onPeerCallAnswered, this);
+    sono.on('onPeerCallVideoStarted', onPeerCallVideoStarted, this);
+    sono.on('onPeerCallVideoEnded', onPeerCallVideoEnded, this);
+    sono.on('onPeerEndCall', onPeerEndCall);
+    sono.on('onPeerStatReceived', onPeerStatReceived);
+    sono.on('onPeerICEConnected', onPeerICEConnected);
+    sono.on('onPeerICECompleted', onPeerICECompleted);
+    sono.on('onPeerICEFailed', onPeerICEFailed);
+    sono.on('onPeerICEClosed', onPeerICEClosed);
+    sono.on('onPeerICEDisconnected', onPeerICEDisconnected);
+    sono.on('onPeerSDPLocalMediaUsed', onPeerSDPLocalMediaUsed);
+    sono.on('onPeerSDPRemoteMediaUsed', onPeerSDPRemoteMediaUsed);
+    sono.on('onPeerSDPCodecsNegotiated', onPeerSDPCodecsNegotiated); 
+
+    // Listen to local media events
+    sono.localMedia().on('onLocalVideoStreamStarted', onLocalStreamStarted, this);
+    sono.localMedia().on('onLocalVideoStreamEnded', onLocalStreamEnded, this);
 }
 
-//Alcatel
-//sono.transport('websocket').connect({host: '172.25.41.180', port: '1337'});
-//Home
-sono.transport('websocket').connect({host: '192.168.0.126', port: port, secure: isSecure});
-//sono.transport('websocket').connect({host: '135.118.76.10', port: '1337'});
+function initDOM() {
 
-sono.transport().on('onTransportReady', onTransportReady, this);
-sono.transport().on('onTransportClosed', onTransportClosed, this);
-sono.transport().on('onTransportError', onTransportError, this);
-sono.on('onJoinAck', onJoinAck, this);
+    // version
+    $('.navbar-version').text(config.version);
+
+    // Listener on buttons
+    $('.btn-pickvideo').on('click', acquireVideo);
+    $('.btn-pickaudio').on('click', acquireAudio);
+
+    $('.btn-startCall').on('click', startCall);
+    $('.btn-stopCall').on('click', stopCall);
+
+    $('.btn-pickaudio').tooltip();
+    $('.btn-pickvideo').tooltip();
+    $('.navbar-participants').tooltip();
+    $('.btn-startCall').tooltip();
+    $('.btn-stopCall').tooltip();        
+
+    // Audio chart
+    graphAudio = new Rickshaw.Graph( {
+        element: document.getElementById("chart-audio"),
+        width: 600,
+        height: 190,
+        renderer: 'area',
+        series: new Rickshaw.Series.FixedDuration(
+            [
+                { name: 'Audio', color: "#30c020" }
+            ], undefined, {
+                timeInterval: config.log.interval,
+                maxDataPoints: 100,
+                timeBase: new Date().getTime() / 1000
+            }
+        ) 
+    });
+
+    graphAudio.render();
+
+    // Audio chart
+    graphVideo = new Rickshaw.Graph( {
+        element: document.getElementById("chart-video"),
+        width: 600,
+        height: 190,
+        renderer: 'area',
+        series: new Rickshaw.Series.FixedDuration(
+            [
+                { name: 'Video', color: "#c05020" }
+            ], undefined, {
+                timeInterval: config.log.interval,
+                maxDataPoints: 100,
+                timeBase: new Date().getTime() / 1000
+            }
+        ) 
+    });
+
+    graphVideo.render();
+
+    legendAudio = new Rickshaw.Graph.Legend({
+        graph: graphAudio,
+        element: document.querySelector('#legend-audio')
+    });
+
+    legendVideo = new Rickshaw.Graph.Legend({
+        graph: graphVideo,
+        element: document.querySelector('#legend-video')
+    });
+
+    var hoverDetailAudio = new Rickshaw.Graph.HoverDetail( {
+        graph: graphAudio
+    });
+
+    var hoverDetailVideo = new Rickshaw.Graph.HoverDetail( {
+        graph: graphVideo
+    });
+
+    var xAxis = new Rickshaw.Graph.Axis.Time({
+        graph: graphVideo
+    });
+
+    xAxis.render();
+
+    var xAxisAudio = new Rickshaw.Graph.Axis.Time({
+        graph: graphAudio
+    });
+
+    xAxisAudio.render();
+
+    var yAxis = new Rickshaw.Graph.Axis.Y({
+        graph: graphVideo
+    });
+
+    yAxis.render();
+
+    var yAxisAudio = new Rickshaw.Graph.Axis.Y({
+        graph: graphAudio
+    });
+
+    yAxisAudio.render();
+}
+
+/* ------------------------ Transport Management -------------------------- */
 
 function onTransportReady() {
-    sono.transport().join('123456');
+    sono.transport().join(config.room);
 };
 
 function onTransportClosed() {
@@ -173,27 +229,7 @@ function onJoinAck() {
     $('.navbar-participants').attr('data-original-title', 'Connected');
 }
 
-/* ------------------------- Peers Management ----------------------------- */
-
-sono.on('onPeerConnected', onPeerConnected, this);
-sono.on('onPeerAlreadyConnected', onPeerConnected, this);
-sono.on('onPeerDisconnected', onPeerDisconnected, this);
-//sono.on('onPeerIMMessage', onPeerIMMessage, this);
-//sono.on('onPeerFileReceived', onPeerFileReceived, this);
-sono.on('onPeerCallOffered', onPeerCallOffered, this);
-sono.on('onPeerCallAnswered', onPeerCallAnswered, this);
-sono.on('onPeerCallVideoStarted', onPeerCallVideoStarted, this);
-sono.on('onPeerCallVideoEnded', onPeerCallVideoEnded, this);
-sono.on('onPeerEndCall', onPeerEndCall);
-sono.on('onPeerStatReceived', onPeerStatReceived);
-sono.on('onPeerICEConnected', onPeerICEConnected);
-sono.on('onPeerICECompleted', onPeerICECompleted);
-sono.on('onPeerICEFailed', onPeerICEFailed);
-sono.on('onPeerICEClosed', onPeerICEClosed);
-sono.on('onPeerICEDisconnected', onPeerICEDisconnected);
-sono.on('onPeerSDPLocalMediaUsed', onPeerSDPLocalMediaUsed);
-sono.on('onPeerSDPRemoteMediaUsed', onPeerSDPRemoteMediaUsed);
-sono.on('onPeerSDPCodecsNegotiated', onPeerSDPCodecsNegotiated); 
+/* ------------------------ Peers Management -------------------------- */
 
 function onPeerConnected(peer) {
     users[peer.ID()] = peer;
@@ -230,7 +266,7 @@ function onPeerCallOffered(data) {
 
 function onPeerCallAnswered(data) {
   console.log("DEMO :: Call answered", data);
-  sono.startStat(data.id, 'video', interval);
+  sono.startStat(data.id, 'video', config.log.interval);
 };
 
 function onPeerICEConnected(data) {
@@ -384,7 +420,7 @@ function onPeerStatReceived(data) {
 
     if(audioPacketsReceived > 0) {
         $('#quality-call-audio').text(audioCallQuality + ' %');
-        if(audioCallQuality < 80) {
+        if(audioCallQuality < config.log.audio.level) {
             $('#quality-call-audio').removeClass('quality-good');
             $('#quality-call-audio').removeClass('quality-none');
             $('#quality-call-audio').addClass('quality-bad');
@@ -396,7 +432,7 @@ function onPeerStatReceived(data) {
         }
 
         $('#quality-last-audio').text(audioCurrentQuality + ' %');
-        if(audioCurrentQuality < 80) {
+        if(audioCurrentQuality < config.log.audio.level) {
             $('#quality-last-audio').removeClass('quality-good');
             $('#quality-last-audio').addClass('quality-bad');
             $('#quality-last-audio').removeClass('quality-none');
@@ -420,7 +456,7 @@ function onPeerStatReceived(data) {
 
     if(videoPacketsReceived > 0) {
         $('#quality-call-video').text(videoCallQuality + ' %');
-        if(videoCallQuality < 80) {
+        if(videoCallQuality < config.log.video.level) {
             $('#quality-call-video').removeClass('quality-good');
             $('#quality-call-video').removeClass('quality-none');
             $('#quality-call-video').addClass('quality-bad');
@@ -432,7 +468,7 @@ function onPeerStatReceived(data) {
         }
 
         $('#quality-last-video').text(videoCurrentQuality + ' %');
-        if(videoCurrentQuality < 80) {
+        if(videoCurrentQuality < config.log.video.level) {
             $('#quality-last-video').removeClass('quality-good');
             $('#quality-last-video').removeClass('quality-none');
             $('#quality-last-video').addClass('quality-bad');
@@ -460,7 +496,7 @@ function onPeerStatReceived(data) {
 
 
     $('#framerate-video').text(framerate + ' fps');
-    if(framerate > 15) {
+    if(framerate > config.log.video.framerate) {
         $('#framerate-video').addClass('quality-good');
         $('#framerate-video').removeClass('quality-bad');
         $('#framerate-video').removeClass('quality-none');
@@ -528,8 +564,6 @@ function onPeerSDPCodecsNegotiated(data) {
 
 /* ------------------------- Local Media management ----------------------- */
 
-sono.localMedia().on('onLocalVideoStreamStarted', onLocalStreamStarted, this);
-sono.localMedia().on('onLocalVideoStreamEnded', onLocalStreamEnded, this);
 
 function onLocalStreamStarted(data) {
     if(data.stream.getVideoTracks().length > 0) {
@@ -571,7 +605,7 @@ var acquireVideo = function acquireVideo(e) {
         stopCall();
     }
     else {
-        sono.localMedia().acquire({media: true, source: ''}, {media: true, source: ''}, 'cam');
+        sono.localMedia().acquire({media: true, source: ''}, {media: true, source: ''}, config.constraints.video.quality);
         callType = 'full';    
     }
 };
@@ -661,8 +695,6 @@ function stopCall(e) {
   
     //sono.transport().exit();
     stopVideo();
-
-
 }
 
 function preventEvent(e) {
