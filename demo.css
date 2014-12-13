@@ -201,7 +201,21 @@ ul li:last-child { margin-bottom: 0 }
 	background-color: #949494;
 }
 
-.participants {$
-
+.quality-helper {
+margin-left: 75px;
+margin-top: -37px;
+width: 16px;
+height: 16px;
+background-color: #555;
+color: #fff;
+border-radius: 8px;
+text-align: center;
+font-size: 11px;
+padding-top: 1px;
+position: absolute;
 }
 
+
+.navbar-copyright {
+	margin-right: 10px;
+}
