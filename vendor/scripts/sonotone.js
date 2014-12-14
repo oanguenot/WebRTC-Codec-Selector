@@ -91,7 +91,7 @@
   globals.require.brunch = true;
 })();
 require.register("sonotone/io", function(exports, require, module) {
-var VERSION = "0.5.0";
+var VERSION = "1.0.1";
 
 var LOG_ID = 'SONOTONE.IO';
 
@@ -1479,89 +1479,55 @@ module.exports = Peer;
 });
 
 require.register("sonotone/others/sdp", function(exports, require, module) {
-var forceCodec = function forceCodec(codec, codecList) {
 
-    var codecIndex = -1;
+var forceCodecTo = function forceCodecTo(sdp, codecToForce, media) {
 
-    for (i = 0; i < codecList.length; i++) {
-        if(tags[i] === codec) {
-            codecIndex = i;
-            break;
+    var splittedSDP = sdp.split('\r\n'),
+        indexVideo = -1,
+        indexPos = -1,
+        codec = [],
+        list = [],
+        from, to, codecName, indexFound, j,
+        codecList = {};
+
+    for (var i = 0, l = splittedSDP.length; i < l; i++) {
+
+        var line = splittedSDP[i];
+
+        if(line.indexOf('m=' + media) > -1) {
+            indexVideo = i;
+            indexPos = line.indexOf('RTP/SAVPF') + 10; 
+            list = line.substring(indexPos).split(" ");
         }
-    }
 
-    codecList.unshift(codecList.splice(codecIndex, 1)[0]);
-
-    return codecList;
-};
-
-module.exports = {
-
-    forceG711: function(sdp) {
-
-        var indexAudio = -1,
-            beginAudioTags = -1;
-            tags = null;
-
-        var line, i;
-
-        if(sdp.length > 0) {
-            var splittedSDP = sdp.split('\r\n');
-
-            for (i = 0, l = splittedSDP.length; i < l; i++) {
-
-                line = splittedSDP[i];
-
-                if(line.indexOf('m=audio') > -1) {
-                       
-                    indexAudio = i;
-                    beginAudioTags = line.indexOf('RTP/SAVPF') + 10;
-                    tags = line.substr(beginAudioTags).split(" ");
-
-                    tags = forceCodec("8", tags);
-                    tags = forceCodec("0", tags);
-                    
+        if(line.indexOf(codecToForce) >-1 ) {
+            from = line.indexOf(':');
+            to = line.indexOf(' ');
+            codecName = line.substring(from + 1, to);
+            indexFound = -1;
+            codec.push(codecName);
+            //Remove from list
+            for(j = 0; j < list.length; j++) {
+                if(list[j] === codecName) {
+                    indexFound = j;
                     break;
                 }
             }
-
-            line = splittedSDP[indexAudio];
-
-            splittedSDP[indexAudio] = line.substring(0, beginAudioTags) + tags.join(" ");
-
-            sdp = splittedSDP.join('\r\n');
+            if(indexFound > -1) {
+                list.splice(indexFound, 1);
+            }
         }
 
-        return sdp;
-    },
-
-    forceH264: function(sdp) {
-
-        var splittedSDP = sdp.split('\r\n'),
-            indexVideo = -1,
-            indexPos = -1,
-            codec = [],
-            list = [],
-            codecList = {};
-
-        for (var i = 0, l = splittedSDP.length; i < l; i++) {
-
-            var line = splittedSDP[i];
-
-            if(line.indexOf('m=video') > -1) {
-                indexVideo = i;
-                indexPos = line.indexOf('RTP/SAVPF') + 10; 
-                list = line.substring(indexPos).split(" ");
-            }
-
-            if(line.indexOf('H264/90000') >-1 ) {
-                var from = line.indexOf(':');
-                var to = line.indexOf(' ');
-                var codecName = line.substring(from + 1, to);
-                var indexFound = -1;
+        if(codecToForce === 'PCMU/8000') {
+            // Do it again with the second codec
+            if(line.indexOf('PCMA/8000') >-1 ) {
+                from = line.indexOf(':');
+                to = line.indexOf(' ');
+                codecName = line.substring(from + 1, to);
+                indexFound = -1;
                 codec.push(codecName);
                 //Remove from list
-                for(var j = 0; j < list.length; j++) {
+                for(j = 0; j < list.length; j++) {
                     if(list[j] === codecName) {
                         indexFound = j;
                         break;
@@ -1572,20 +1538,33 @@ module.exports = {
                 }
             }
         }
+    }
 
-        splittedSDP[indexVideo] = splittedSDP[indexVideo].substr(0, indexPos-1);
-        // Add H264 codec first
-        for (var k = 0; k < codec.length; k++) {
-            splittedSDP[indexVideo] += " " + codec[k];
-        }
+    splittedSDP[indexVideo] = splittedSDP[indexVideo].substr(0, indexPos-1);
+    // Add  requested codec first
+    for (var k = 0; k < codec.length; k++) {
+        splittedSDP[indexVideo] += " " + codec[k];
+    }
 
-        if(list.length > 0) {
-            splittedSDP[indexVideo] += " " + list.join(' ');    
-        }
+    if(list.length > 0) {
+        splittedSDP[indexVideo] += " " + list.join(' ');    
+    }
 
-        sdp = splittedSDP.join('\r\n');
+    sdp = splittedSDP.join('\r\n');
 
-        return sdp;
+    return sdp;
+};
+
+module.exports = {
+
+
+
+    forceVideoCodecTo: function(sdp, codecToForce) {
+        return (forceCodecTo(sdp, codecToForce, 'video'));
+    },
+
+    forceAudioCodecTo: function(sdp, codecToForce) {
+        return (forceCodecTo(sdp, codecToForce, 'audio'));
     },
 
     getFirstAudioCodec: function(sdp) {
@@ -2224,14 +2203,14 @@ PeerConnection.prototype.createOffer = function(audioCodec, videoCodec) {
             //     }
             // }
 
-            if(audioCodec === 'g711') {
-                offerSDP.sdp = sdpSwapper.forceG711(offerSDP.sdp);
-                logger.log(LOG_ID, "SDP forced to G711", offerSDP.sdp);    
+            if(audioCodec  && audioCodec !== 'opus/48000/2') {
+                offerSDP.sdp = sdpSwapper.forceAudioCodecTo(offerSDP.sdp, audioCodec);
+                logger.log(LOG_ID, "SDP forced " + audioCodec, offerSDP.sdp);    
             }
 
-            if(videoCodec === 'h264') {
-                offerSDP.sdp = sdpSwapper.forceH264(offerSDP.sdp);
-                logger.log(LOG_ID, "SDP forced to H264", offerSDP.sdp);
+            if(videoCodec && videoCodec !== 'VP8/90000') {
+                offerSDP.sdp = sdpSwapper.forceVideoCodecTo(offerSDP.sdp, videoCodec);
+                logger.log(LOG_ID, "SDP forced " + videoCodec, offerSDP.sdp);
             }
 
             var sdpMedia = sdpSwapper.getMediaInSDP(offerSDP.sdp);

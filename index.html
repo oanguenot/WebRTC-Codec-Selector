@@ -53,31 +53,28 @@
                         <form class="navbar-form navbar-left topBar-menu" role="search">
 
                             <div class='navbar-audio'>
-                                <label class='navbar-audio-label'>Audio Call &nbsp;</label>
+                                <label class='navbar-audio-label'>Call using &nbsp;</label>
                                 <select class="form-control navbar-audio-codec">
-                                    <option value='opus' selected>Opus</option>
-                                    <option value='g711'>G711</option>
+                                    <option value='opus/48000/2' selected>Opus</option>
+                                    <option value='PCMU/8000'>G711</option>
+                                    <option value='g722/8000'>G722</option>
                                 </select>
-
-                                <button type="action" class="btn btn-default btn-pickaudio btn-primary" data-toggle="tooltip" data-placement="bottom" data-original-title="Audio call with microphone only" disabled>
-                                    <i class="btn-pickaudio-icon glyphicon glyphicon-headphones"></i>
-                                </button>
-
+                                <span class="btn-audio glyphicon glyphicon-headphones"></span>
                             </div>
 
-                            <label class='navbar-space'>OR</label>
+                            <label class='navbar-audio-label'>&nbsp;-&nbsp;</label>
 
                             <div class='navbar-video'>
-                                <label class='navbar-video-label'>Video Call&nbsp;</label>
                                 <select class="form-control navbar-video-codec">
-                                    <option value='vp8-opus' selected>VP8 & Opus</option>
-                                    <option value='vp8-g711'>VP8 & G711</option>
-                                    <option value='h264-opus'>H264 & Opus</option>
-                                    <option value='h264-g711'>H264 & G711</option>
+                                    <option value='none'>None</option>
+                                    <option value='VP8/90000' selected>VP8</option>
+                                    <option value='H264/90000'>H264</option>
                                 </select>
 
-                                <button type="action" class="btn btn-default btn-warning btn-pickvideo" data-toggle="tooltip" data-placement="bottom" data-original-title="Video call with microphone and camera" disabled>
-                                <i class="btn-pickvideo-icon glyphicon glyphicon glyphicon-facetime-video"></i>
+                                <span class="btn-video glyphicon glyphicon-facetime-video"></span>
+
+                                <button type="action" class="btn btn-default btn-warning btn-pickvideo" data-toggle="tooltip" data-placement="bottom" data-original-title="Start the call" disabled>
+                                <i class="btn-pickvideo-icon glyphicon glyphicon-earphone"></i>
                                 </button>
 
                             </div>

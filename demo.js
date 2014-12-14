@@ -91,8 +91,8 @@ function initSonotone() {
     sono.on('onPeerICEFailed', onPeerICEFailed);
     sono.on('onPeerICEClosed', onPeerICEClosed);
     sono.on('onPeerICEDisconnected', onPeerICEDisconnected);
-    sono.on('onPeerSDPLocalMediaUsed', onPeerSDPLocalMediaUsed);
-    sono.on('onPeerSDPRemoteMediaUsed', onPeerSDPRemoteMediaUsed);
+    // sono.on('onPeerSDPLocalMediaUsed', onPeerSDPLocalMediaUsed);
+    // sono.on('onPeerSDPRemoteMediaUsed', onPeerSDPRemoteMediaUsed);
     sono.on('onPeerSDPCodecsNegotiated', onPeerSDPCodecsNegotiated); 
 
     // Listen to local media events
@@ -106,13 +106,11 @@ function initDOM() {
     $('.navbar-version').text(config.version);
 
     // Listener on buttons
-    $('.btn-pickvideo').on('click', acquireVideo);
-    $('.btn-pickaudio').on('click', acquireAudio);
+    $('.btn-pickvideo').on('click', acquire);
 
     $('.btn-startCall').on('click', startCall);
     $('.btn-stopCall').on('click', stopCall);
 
-    $('.btn-pickaudio').tooltip();
     $('.btn-pickvideo').tooltip();
     $('.navbar-participants').tooltip();
     $('.btn-startCall').tooltip();
@@ -348,21 +346,17 @@ function onPeerCallVideoStarted(data) {
     sono.remoteMedia(data.id, data.media).renderStream($('.webrtc-container-remoteVideo')[0]);
     sono.startStat(data.id);
 
-    //Change button call to stop
-    if(callType === 'audio') {
-        $('.btn-pickaudio').removeClass('btn-primary');
-        $('.btn-pickaudio').addClass('btn-danger');
-        $('.btn-pickaudio').attr('data-original-title', 'End this call');
-        $('.btn-pickaudio-icon').removeClass('glyphicon-headphones');
-        $('.btn-pickaudio-icon').addClass('glyphicon-phone-alt');
+    $('.btn-pickvideo').removeClass('btn-warning');
+    $('.btn-pickvideo').addClass('btn-danger');
+    $('.btn-pickvideo').attr('data-original-title', 'End this call');
+    $('.btn-pickvideo-icon').removeClass('glyphicon-facetime-video');
+    $('.btn-pickvideo-icon').addClass('glyphicon-phone-alt');
 
+    if(data.stream.getVideoTracks().length > 0) {
+        onPeerSDPRemoteMediaUsed('full');
     }
     else {
-        $('.btn-pickvideo').removeClass('btn-warning');
-        $('.btn-pickvideo').addClass('btn-danger');
-        $('.btn-pickvideo').attr('data-original-title', 'End this call');
-        $('.btn-pickvideo-icon').removeClass('glyphicon-facetime-video');
-        $('.btn-pickvideo-icon').addClass('glyphicon-phone-alt');
+        onPeerSDPRemoteMediaUsed('audio');
     }
 };
 
@@ -558,7 +552,14 @@ function onPeerSDPRemoteMediaUsed(data) {
 
 function onPeerSDPCodecsNegotiated(data) {
     console.log("DEMO :: Codecs negotiated", data);
-    $('.webrtc-state').text(data.audio.toUpperCase() + ' - ' + data.video.toUpperCase());
+
+    if(callType === 'audio') {
+        $('.webrtc-state').text(data.audio.toUpperCase());    
+    }
+    else {
+        $('.webrtc-state').text(data.audio.toUpperCase() + ' - ' + data.video.toUpperCase());    
+    }
+    
     codecUsed = data;
 }
 
@@ -566,22 +567,19 @@ function onPeerSDPCodecsNegotiated(data) {
 
 
 function onLocalStreamStarted(data) {
+    
     if(data.stream.getVideoTracks().length > 0) {
         sono.localMedia().renderCameraStream($('.webrtc-container-localVideo')[0]);
         $('.webrtc-container-localVideo').volume = 0;
         $('.webrtc-container-localVideo').prop('muted', true); //mute    
         onPeerSDPLocalMediaUsed('full');
-
-        $('.navbar-audio').hide();
-        $('.navbar-space').hide();
-        $('.navbar-video-codec').disable(true);
     }
     else {
         onPeerSDPLocalMediaUsed('audio');
-        $('.navbar-video').hide();
-        $('.navbar-space').hide();
-        $('.navbar-audio-codec').disable(true);
     }
+
+    $('.navbar-video-codec').disable(true);
+    $('.navbar-audio-codec').disable(true);
 
     $('.webrtc-state').text('READY');
 
@@ -596,11 +594,24 @@ function onLocalStreamEnded(stream) {
     $('.webrtc-state').text('FREE');    
 };
 
-var acquireVideo = function acquireVideo(e) {
+var acquire = function(e) {
+
     if(e) {
         preventEvent(e);    
     }
 
+    var videoCodec = $('.navbar-video-codec').val();
+    if(videoCodec !== 'none') {
+        acquireVideo();
+    }
+    else {
+        acquireAudio();
+    }
+};
+
+
+var acquireVideo = function acquireVideo(e) {
+    
     if(inCall) {
         stopCall();
     }
@@ -611,9 +622,6 @@ var acquireVideo = function acquireVideo(e) {
 };
 
 var acquireAudio = function acquireAudio(e) {
-    if(e) {
-        preventEvent(e);    
-    }
 
     if(inCall) {
         stopCall();
@@ -630,32 +638,21 @@ function stopVideo() {
   $('.webrtc-container-localVideo').attr('src', '');
 };
 
-function sendIMMessageToAll() {
-    sono.sendIMMessage('Hello all peers !');
-};
-
 function startCall() {
 
-    var audioCodec = 'opus',
-        videoCodec = 'VP8';
-
-    if(callType === 'audio') {
-        audioCodec = $('.navbar-audio-codec').val(),
+    var audioCodec = 'opus/48000/2',
         videoCodec = '';
-    }
-    else {
-        var listOfCodecs = $('.navbar-video-codec').val().split('-')
-        videoCodec = listOfCodecs[0];
-        audioCodec = listOfCodecs[1];
+
+    audioCodec = $('.navbar-audio-codec').val();
+
+    var checkVideo = $('.navbar-video-codec').val();
+
+    if(checkVideo !== 'none') {
+        videoCodec =   checkVideo;  
     }
 
     if(lastConnected && isMediaReady) {
         sono.call(lastConnected.ID(), 'video', audioCodec, videoCodec);  
-    }
-    else {
-        if(!lastConnected) {
-
-        }
     }
 };
 
@@ -670,28 +667,14 @@ function stopCall(e) {
         sono.endCall(lastConnected.ID());      
     }
 
-    if(callType === 'audio') {
-        $('.navbar-video').show();
-        $('.navbar-space').show();
-        $('.navbar-audio-codec').disable(false);
+    $('.navbar-audio-codec').disable(false);
+    $('.navbar-video-codec').disable(false);  
 
-        $('.btn-pickaudio').addClass('btn-primary');
-        $('.btn-pickaudio').removeClass('btn-danger');
-        $('.btn-pickaudio').attr('data-original-title', 'Audio call with microphone only');
-        $('.btn-pickaudio-icon').addClass('glyphicon-headphones');
-        $('.btn-pickaudio-icon').removeClass('glyphicon-phone-alt');
-    }
-    else {
-        $('.navbar-audio').show();
-        $('.navbar-space').show();
-        $('.navbar-video-codec').disable(false);  
-
-        $('.btn-pickvideo').addClass('btn-warning');
-        $('.btn-pickvideo').removeClass('btn-danger');
-        $('.btn-pickvideo').attr('data-original-title', 'Video call with microphone and camera');
-        $('.btn-pickvideo-icon').addClass('glyphicon-facetime-video');
-        $('.btn-pickvideo-icon').removeClass('glyphicon-phone-alt'); 
-    }
+    $('.btn-pickvideo').addClass('btn-warning');
+    $('.btn-pickvideo').removeClass('btn-danger');
+    $('.btn-pickvideo').attr('data-original-title', 'Video call with microphone and camera');
+    $('.btn-pickvideo-icon').addClass('glyphicon-earphone');
+    $('.btn-pickvideo-icon').removeClass('glyphicon-phone-alt'); 
   
     //sono.transport().exit();
     stopVideo();
