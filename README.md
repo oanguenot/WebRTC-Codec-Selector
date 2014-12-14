@@ -15,9 +15,15 @@ WebRTC utility tools for:
 
 
 # TODO
+ - To complete
 
 
 # HISTORY
+
+## Version 1.0.3
+ - FIX: Media displayed (audio only)
+ - FEATURE: Add the possibility to force to G722
+ - REWORK: Media selector
 
 ## Version 1.0.1 & 1.0.2
  - FIX: Firefox glitch
