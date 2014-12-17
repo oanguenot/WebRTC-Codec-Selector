@@ -652,7 +652,15 @@ function startCall() {
     }
 
     if(lastConnected && isMediaReady) {
-        sono.call(lastConnected.ID(), 'video', audioCodec, videoCodec);  
+
+        var constraints = {
+            audioCodec: audioCodec,
+            videoCodec: videoCodec,
+            audioBandwidth: 20,
+            videoBandwidth: 256
+        };
+
+        sono.call(lastConnected.ID(), 'video', constraints);  
     }
 };
 

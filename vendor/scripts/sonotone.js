@@ -527,13 +527,16 @@ module.exports = {
      * Try to call an other peer
      * @param {String} callee The recipient ID
      * @param {String} media 'video', 'screen', 'data' or 'video' if null
+     * @param {Object} constraints that contains
      * @param {String} audioCodec 'g711', 'opus' or default order of browser if null
-     * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null 
+     * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null
+     * @param {Number} audioBandwidth   The max bandwidth for audio
+     * @param {Number} videoBandwidth   The max bandwidth for video 
      *
      * @api public
      */
 
-    call: function(callee, media, audioCodec, videoCodec) {
+    call: function(callee, media, constraints) {
 
         media = media || 'video';
 
@@ -542,7 +545,7 @@ module.exports = {
         if(peer) {
             // If no tmp_offer for that peer = call
             // if tmp_offer for that peer = answer
-            peer.call(media, tmp_offer[callee], audioCodec, videoCodec);
+            peer.call(media, tmp_offer[callee], constraints);
             delete tmp_offer[callee];
         }
         else {
@@ -1257,11 +1260,14 @@ Peer.prototype.ID = function() {
  * Call a peer with a specified media (screen or video)
  * @param {String} media    The media used
  * @param {Object} offer    The offer if exists
+ * @param {Object} constraints that contains
  * @param {String} audioCodec 'g711', 'opus' or default order of browser if null
- * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null 
+ * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null
+ * @param {Number} audioBandwidth   The max bandwidth for audio
+ * @param {Number} videoBandwidth   The max bandwidth for video 
  */
 
-Peer.prototype.call = function(media, offer, audioCodec, videoCodec) {
+Peer.prototype.call = function(media, offer, constraints) {
  
     var pc = null;
 
@@ -1401,7 +1407,7 @@ Peer.prototype.call = function(media, offer, audioCodec, videoCodec) {
         pc.createAnswer(media, this._alreadyReceivedCandidates);    
     }
     else {
-        pc.createOffer(audioCodec, videoCodec);
+        pc.createOffer(constraints);
     }
 };
 
@@ -1557,8 +1563,6 @@ var forceCodecTo = function forceCodecTo(sdp, codecToForce, media) {
 
 module.exports = {
 
-
-
     forceVideoCodecTo: function(sdp, codecToForce) {
         return (forceCodecTo(sdp, codecToForce, 'video'));
     },
@@ -1690,7 +1694,17 @@ module.exports = {
         }
 
         return media;
-    }
+    },
+
+    limitAudioBandwidthTo: function(sdp, size) {
+         sdp = sdp.replace(/a=mid:audio\r\n/g, 'a=mid:audio\r\nb=AS:' + size + '\r\n');
+        return sdp;
+    },
+
+    limitVideoBandwidthTo: function(sdp, size) {
+         sdp = sdp.replace(/a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:' + size + '\r\n');
+        return sdp;
+    },    
 
 };
 });
@@ -2156,11 +2170,14 @@ PeerConnection.prototype.attach = function(stream) {
 
 /**
  * Create an offer for calling an other peer
+ * @param {Object} mediaConstraints Additionnal constraints that contains: 
  * @param {String} audioCodec 'g711', 'opus' or default order of browser if null
- * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null 
+ * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null
+ * @param {Number} audioBandwidth   The max bandwidth for audio
+ * @param {Number} videoBandwidth   The max bandwidth for video
  */
 
-PeerConnection.prototype.createOffer = function(audioCodec, videoCodec) {
+PeerConnection.prototype.createOffer = function(mediaConstraints) {
 
     logger.log(LOG_ID, "Try to create an offer for <" + this._id + ">...");
 
@@ -2189,28 +2206,27 @@ PeerConnection.prototype.createOffer = function(audioCodec, videoCodec) {
 
         this._peer.createOffer(function(offerSDP) {
 
-            // if(fct) {
-            //     switch (fct.action) {
-            //         case 'mute':
-            //             offerSDP = that.muteSDP(offerSDP);
-            //             muted = true;
-            //             break;
-            //         case 'unmute':
-            //             offerSDP = that.unmuteSDP(offerSDP);
-            //             break;
-            //         default:
-            //             break;
-            //     }
-            // }
+            // Change tthe SDP to force some parameters
+            if(mediaConstraints) {
+                if(mediaConstraints.audioCodec  && mediaConstraints.audioCodec !== 'opus/48000/2') {
+                    offerSDP.sdp = sdpSwapper.forceAudioCodecTo(offerSDP.sdp, mediaConstraints.audioCodec);
+                    logger.log(LOG_ID, "SDP forced audio to " + mediaConstraints.audioCodec, offerSDP.sdp);    
+                }
 
-            if(audioCodec  && audioCodec !== 'opus/48000/2') {
-                offerSDP.sdp = sdpSwapper.forceAudioCodecTo(offerSDP.sdp, audioCodec);
-                logger.log(LOG_ID, "SDP forced " + audioCodec, offerSDP.sdp);    
-            }
+                if(mediaConstraints.videoCodec && mediaConstraints.videoCodec !== 'VP8/90000') {
+                    offerSDP.sdp = sdpSwapper.forceVideoCodecTo(offerSDP.sdp, mediaConstraints.videoCodec);
+                    logger.log(LOG_ID, "SDP forced video to " + mediaConstraints.videoCodec, offerSDP.sdp);
+                }
 
-            if(videoCodec && videoCodec !== 'VP8/90000') {
-                offerSDP.sdp = sdpSwapper.forceVideoCodecTo(offerSDP.sdp, videoCodec);
-                logger.log(LOG_ID, "SDP forced " + videoCodec, offerSDP.sdp);
+                if(mediaConstraints.audioBandwidth) {
+                    offerSDP.sdp = sdpSwapper.limitAudioBandwidthTo(offerSDP.sdp, mediaConstraints.audioBandwidth);
+                    logger.log(LOG_ID, "SDP limited audio to " + mediaConstraints.audioBandwidth, offerSDP.sdp);
+                }
+
+                if(mediaConstraints.videoBandwidth) {
+                    offerSDP.sdp = sdpSwapper.limitVideoBandwidthTo(offerSDP.sdp, mediaConstraints.videoBandwidth);
+                    logger.log(LOG_ID, "SDP limited video to " + mediaConstraints.videoBandwidth, offerSDP.sdp);
+                }
             }
 
             var sdpMedia = sdpSwapper.getMediaInSDP(offerSDP.sdp);
