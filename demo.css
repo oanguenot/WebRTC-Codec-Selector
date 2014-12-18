@@ -96,10 +96,17 @@ padding-top: 4px;
 }
 
 .btn-video {
-	background-color: #5bc0de;
 	padding: 7px 8px 10px 8px;
 	border-radius: 4px;
 	color: #fff;
+}
+
+.btn-video-on {
+	background-color: #5bc0de;
+}
+
+.btn-video-off {
+	background-color: #939393;
 }
 
 .btn-audio {

@@ -115,6 +115,16 @@ function initDOM() {
     $('.btn-startCall').on('click', startCall);
     $('.btn-stopCall').on('click', stopCall);
     $('.btn-options').on('click', onDisplayOptions);
+    $('.navbar-video-codec').on('change', function() {
+        if($('.navbar-video-codec').val() === 'none') {
+            $('.btn-video').addClass('btn-video-off');
+            $('.btn-video').removeClass('btn-video-on');
+        }
+        else {
+            $('.btn-video').removeClass('btn-video-off');
+            $('.btn-video').addClass('btn-video-on');
+        }
+    });
 
     $('.btn-pickvideo').tooltip();
     $('.navbar-participants').tooltip();
