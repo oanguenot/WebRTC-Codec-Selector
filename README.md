@@ -20,6 +20,9 @@ WebRTC utility tools for:
 
 # HISTORY
 
+## Version 1.0.4
+ - FEATURE: Limit the audio & video bandwidth
+
 ## Version 1.0.3
  - FIX: Media displayed (audio only)
  - FEATURE: Add the possibility to force to G722

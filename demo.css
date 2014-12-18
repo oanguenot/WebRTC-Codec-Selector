@@ -232,3 +232,15 @@ position: absolute;
 .navbar-copyright {
 	margin-right: 10px;
 }
+
+.webrtc-form-bandwidth {
+	margin-top: 10px;
+}
+
+.webrtc-label {
+	margin-left: 10px;
+}
+
+.webrtc-video-bandwidth, .webrtc-audio-bandwidth {
+	margin-left: 10px;
+}

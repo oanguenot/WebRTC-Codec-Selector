@@ -54,8 +54,8 @@
 
                             <div class='navbar-audio'>
                                 <label class='navbar-audio-label'>Call using &nbsp;</label>
-                                <select class="form-control navbar-audio-codec">
-                                    <option value='opus/48000/2' selected>Opus</option>
+                                <select class="form-control navbar-audio-codec" data-show-icon="true">
+                                    <option data-content="<i class='glyphicon glyphicon-cutlery'></i>" value='opus/48000/2' selected>Opus</option>
                                     <option value='PCMU/8000'>G711</option>
                                     <option value='g722/8000'>G722</option>
                                 </select>
@@ -75,6 +75,10 @@
 
                                 <button type="action" class="btn btn-default btn-warning btn-pickvideo" data-toggle="tooltip" data-placement="bottom" data-original-title="Start the call" disabled>
                                 <i class="btn-pickvideo-icon glyphicon glyphicon-earphone"></i>
+                                </button>
+
+                                <button type="action" class="btn btn-default btn-default btn-options" data-toggle="tooltip" data-placement="bottom" data-original-title="Options">
+                                <i class="glyphicon glyphicon-cog"></i>
                                 </button>
 
                             </div>
@@ -123,5 +127,72 @@
             </div>
         </nav>
     </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="webrtc-options" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                    <h4 class="modal-title" id="myModalLabel">Options</h4>
+                </div>
+                <div class="modal-body">
+
+                    <label class=''>Bandwidth limitation</label>
+
+                    <form class="form-inline webrtc-form-bandwidth" role="form">
+                        <div class='form-group'>
+                            <label class='webrtc-label'>Audio</label>
+
+                            <select class="form-control webrtc-audio-bandwidth">
+                                <option value='full'>Without limitation</option>
+                                <option value='4'>4 kb/s</option>
+                                <option value='8'>8 kb/s</option>
+                                <option value='12'>12 kb/s</option>
+                                <option value='16'>16 kb/s</option>
+                                <option value='24'>24 kb/s</option>
+                                <option value='32'>32 kb/s</option>
+                                <option value='48'>48 kb/s</option>
+                                <option value='64'>64 kb/s</option>
+                                <option value='96'>96 kb/s</option>
+                                <option value='128'>128 kb/s</option>
+                                <option value='256'>256 kb/s</option>
+                                <option value='512'>512 kb/s</option>
+                                <option value='1024'>1024 kb/s</option>
+                            </select>
+                        </div>
+
+                        <div class='form-group'>
+                            <label class='webrtc-label'>Video</label>
+
+                            <select class="form-control webrtc-video-bandwidth">
+                                <option value='full'>Without limitation</option>
+                                <option value='24'>24 kb/s</option>
+                                <option value='48'>48 kb/s</option>
+                                <option value='64'>64 kb/s</option>
+                                <option value='96'>96 kb/s</option>
+                                <option value='128'>128 kb/s</option>
+                                <option value='256'>256 kb/s</option>
+                                <option value='384'>384 kb/s</option>
+                                <option value='512'>512 kb/s</option>
+                                <option value='768'>768 kb/s</option>
+                                <option value='1024'>1024 kb/s</option>
+                                <option value='1280'>1280 kb/s</option>
+                                <option value='1536'>1536 kb/s</option>
+                                <option value='2048'>2048 kb/s</option>
+                            </select>
+                        </div>
+                    </form>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary btn-save-options">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 </body>
 </html>

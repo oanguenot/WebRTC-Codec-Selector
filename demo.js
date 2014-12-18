@@ -15,6 +15,10 @@ var callType = 'full';
 var config = null;
 var codecUsed = null;
 var sono = null;
+var isAnswering = false;
+
+var videoBandwidth = 'full'
+    audioBandwidth = 'full';
 
 var graphAudio, graphVideo,
     legendAudio, legendVideo, 
@@ -110,11 +114,13 @@ function initDOM() {
 
     $('.btn-startCall').on('click', startCall);
     $('.btn-stopCall').on('click', stopCall);
+    $('.btn-options').on('click', onDisplayOptions);
 
     $('.btn-pickvideo').tooltip();
     $('.navbar-participants').tooltip();
     $('.btn-startCall').tooltip();
-    $('.btn-stopCall').tooltip();        
+    $('.btn-stopCall').tooltip();
+    $('.btn-options').tooltip();
 
     // Audio chart
     graphAudio = new Rickshaw.Graph( {
@@ -251,6 +257,8 @@ function onPeerDisconnected(peer) {
 
 function onPeerCallOffered(data) {
   console.log("DEMO :: Call Offered", data);
+
+  isAnswering = true;
   
   if(data.type === 'full') {
     acquireVideo();
@@ -656,8 +664,8 @@ function startCall() {
         var constraints = {
             audioCodec: audioCodec,
             videoCodec: videoCodec,
-            audioBandwidth: 20,
-            videoBandwidth: 256
+            audioBandwidth: audioBandwidth !== 'full' ? parseInt(audioBandwidth) : null,
+            videoBandwidth: videoBandwidth !== 'full' ? parseInt(videoBandwidth) : null
         };
 
         sono.call(lastConnected.ID(), 'video', constraints);  
@@ -691,4 +699,19 @@ function stopCall(e) {
 function preventEvent(e) {
     e.preventDefault();
     e.stopPropagation();
+}
+
+function onDisplayOptions(e) {
+    preventEvent(e);
+
+    $('#webrtc-options').modal('show');
+    $('.webrtc-audio-bandwidth').val(audioBandwidth);
+    $('.webrtc-video-bandwidth').val(videoBandwidth);
+
+    $('.btn-save-options').one('click', function() {
+        audioBandwidth = $('.webrtc-audio-bandwidth').val();
+        videoBandwidth = $('.webrtc-video-bandwidth').val();
+
+        $('#webrtc-options').modal('hide')
+    });
 }
