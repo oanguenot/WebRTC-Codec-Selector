@@ -17,6 +17,7 @@
     <script type="text/javascript" src="./vendor/scripts/rickshaw-fixtures-time.js"></script>
     <script type="text/javascript" src="./vendor/scripts/rickshaw-graph-axis-time.js"></script>
     <script type="text/javascript" src="./vendor/scripts/rickshaw-graph-axis-y.js"></script>
+    <script type="text/javascript" src="./vendor/scripts/ua-parser.min.js"></script>
 
 
     <!-- Vendors styles -->
@@ -138,9 +139,11 @@
                 </div>
                 <div class="modal-body">
 
-                    <label class=''>Bandwidth limitation</label>
-
                     <form class="form-inline webrtc-form-bandwidth" role="form">
+
+                        <h4 class='webrtc-options-title'>Bandwidth limitation <small>(Chrome only)</small></h4>
+
+                    
                         <div class='form-group'>
                             <label class='webrtc-label'>Audio</label>
 
@@ -182,6 +185,23 @@
                                 <option value='2048'>2048 kb/s</option>
                             </select>
                         </div>
+
+                        <h4 class='webrtc-options-title'>Opus optimizations <small>(Chrome only)</small></h4>
+
+                        <div class="checkbox">
+                            <label class='webrtc-options-opus'>
+                                <input type="checkbox" class='webrtc-options-fec'> Use Inband FEC <small>(Forward Error Correction)</small>
+                            </label>
+                        </div>
+
+                        <br><br>
+
+                        <div class="checkbox">
+                            <label class='webrtc-options-opus'>
+                                <input type="checkbox" class='webrtc-options-stereo'> Use Stereo <small>(Mono by default)</small>
+                            </label>
+                        </div>
+
                     </form>
 
                 </div>

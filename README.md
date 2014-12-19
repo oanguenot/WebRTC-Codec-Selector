@@ -22,6 +22,7 @@ WebRTC utility tools for:
 
 ## Version 1.0.4
  - FEATURE: Limit the audio & video bandwidth
+ - FEATURE: Select FEC and/or Stereo for Opus
 
 ## Version 1.0.3
  - FIX: Media displayed (audio only)
@@ -41,8 +42,9 @@ WebRTC utility tools for:
  - FEATURE: Display Framerate
 
 # DEPENDENCIES
- - Jquery 2.1.1 (MIT)
+ - Jquery (MIT)
  - D3 (MIT)
  - Ricksaw (MIT)
- - Bootstrap 3.3.1 (MIT)
+ - Bootstrap (MIT)
  - Sonotone (MIT)
+ - UA-Parser (MIT)

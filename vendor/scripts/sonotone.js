@@ -531,7 +531,10 @@ module.exports = {
      * @param {String} audioCodec 'g711', 'opus' or default order of browser if null
      * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null
      * @param {Number} audioBandwidth   The max bandwidth for audio
-     * @param {Number} videoBandwidth   The max bandwidth for video 
+     * @param {Number} videoBandwidth   The max bandwidth for video
+     * @param {Object} opus Opus specific options that contains
+     *          @param {Boolean} useFEC True to use FEC
+     *          @param {Boolean} useStereo True fo use the stereo
      *
      * @api public
      */
@@ -1264,7 +1267,10 @@ Peer.prototype.ID = function() {
  * @param {String} audioCodec 'g711', 'opus' or default order of browser if null
  * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null
  * @param {Number} audioBandwidth   The max bandwidth for audio
- * @param {Number} videoBandwidth   The max bandwidth for video 
+ * @param {Number} videoBandwidth   The max bandwidth for video
+ * @param {Object} opus Opus specific options that contains
+ *          @param {Boolean} useFEC True to use FEC
+ *          @param {Boolean} useStereo True fo use the stereo
  */
 
 Peer.prototype.call = function(media, offer, constraints) {
@@ -1561,6 +1567,37 @@ var forceCodecTo = function forceCodecTo(sdp, codecToForce, media) {
     return sdp;
 };
 
+// Find the line in sdpLines that starts with |prefix|, and, if specified,
+// contains |substr| (case-insensitive search).
+// https://github.com/muaz-khan/RTCMultiConnection/wiki/Bandwidth-Management
+var findLine = function findLine(sdpLines, prefix, substr) {
+    return findLineInRange(sdpLines, 0, -1, prefix, substr);
+};
+
+// Find the line in sdpLines[startLine...endLine - 1] that starts with |prefix|
+// and, if specified, contains |substr| (case-insensitive search).
+// https://github.com/muaz-khan/RTCMultiConnection/wiki/Bandwidth-Management
+var findLineInRange = function findLineInRange(sdpLines, startLine, endLine, prefix, substr) {
+    var realEndLine = endLine !== -1 ? endLine : sdpLines.length;
+    for (var i = startLine; i < realEndLine; ++i) {
+        if (sdpLines[i].indexOf(prefix) === 0) {
+            if (!substr ||
+                sdpLines[i].toLowerCase().indexOf(substr.toLowerCase()) !== -1) {
+                return i;
+            }
+        }
+    }
+    return null;
+}
+
+// Gets the codec payload type from an a=rtpmap:X line.
+// https://github.com/muaz-khan/RTCMultiConnection/wiki/Bandwidth-Management
+var getCodecPayloadType = function getCodecPayloadType(sdpLine) {
+    var pattern = new RegExp('a=rtpmap:(\\d+) \\w+\\/\\d+');
+    var result = sdpLine.match(pattern);
+    return (result && result.length === 2) ? result[1] : null;
+};
+
 module.exports = {
 
     forceVideoCodecTo: function(sdp, codecToForce) {
@@ -1695,6 +1732,62 @@ module.exports = {
 
         return media;
     },
+
+    addFECSupport: function(sdp) {
+
+        // https://github.com/muaz-khan/RTCMultiConnection/wiki/Bandwidth-Management
+        var sdpLines = sdp.split('\r\n');
+
+        // Find opus payload.
+        var opusIndex = findLine(sdpLines, 'a=rtpmap', 'opus/48000');
+        var opusPayload;
+        if (opusIndex) {
+            opusPayload = getCodecPayloadType(sdpLines[opusIndex]);
+        }
+
+        // Find the payload in fmtp line.
+        var fmtpLineIndex = findLine(sdpLines, 'a=fmtp:' + opusPayload.toString());
+        if (fmtpLineIndex === null) {
+            return sdp;
+        }
+
+        // Append stereo=1 to fmtp line.
+        // added maxaveragebitrate here; about 128 kbits/s
+        // added stereo=1 here for stereo audio
+        sdpLines[fmtpLineIndex] = sdpLines[fmtpLineIndex].concat('; useinbandfec=1');
+
+        sdp = sdpLines.join('\r\n');
+
+        return sdp;
+    },
+
+    addStereoSupport: function(sdp) {
+
+        // https://github.com/muaz-khan/RTCMultiConnection/wiki/Bandwidth-Management
+        var sdpLines = sdp.split('\r\n');
+
+        // Find opus payload.
+        var opusIndex = findLine(sdpLines, 'a=rtpmap', 'opus/48000');
+        var opusPayload;
+        if (opusIndex) {
+            opusPayload = getCodecPayloadType(sdpLines[opusIndex]);
+        }
+
+        // Find the payload in fmtp line.
+        var fmtpLineIndex = findLine(sdpLines, 'a=fmtp:' + opusPayload.toString());
+        if (fmtpLineIndex === null) {
+            return sdp;
+        }
+
+        // Append stereo=1 to fmtp line.
+        // added maxaveragebitrate here; about 128 kbits/s
+        // added stereo=1 here for stereo audio
+        sdpLines[fmtpLineIndex] = sdpLines[fmtpLineIndex].concat('; stereo=1; sprop-stereo=1');
+
+        sdp = sdpLines.join('\r\n');
+
+        return sdp;
+    },    
 
     limitAudioBandwidthTo: function(sdp, size) {
          sdp = sdp.replace(/a=mid:audio\r\n/g, 'a=mid:audio\r\nb=AS:' + size + '\r\n');
@@ -2175,6 +2268,9 @@ PeerConnection.prototype.attach = function(stream) {
  * @param {String} videoCodec 'vp8' or 'h264' or default order of browser if null
  * @param {Number} audioBandwidth   The max bandwidth for audio
  * @param {Number} videoBandwidth   The max bandwidth for video
+ * @param {Object} opus Opus specific options that contains
+ *          @param {Boolean} useFEC True to use FEC
+ *          @param {Boolean} useStereo True fo use the stereo
  */
 
 PeerConnection.prototype.createOffer = function(mediaConstraints) {
@@ -2206,11 +2302,22 @@ PeerConnection.prototype.createOffer = function(mediaConstraints) {
 
         this._peer.createOffer(function(offerSDP) {
 
-            // Change tthe SDP to force some parameters
+            // Change the SDP to force some parameters
             if(mediaConstraints) {
                 if(mediaConstraints.audioCodec  && mediaConstraints.audioCodec !== 'opus/48000/2') {
                     offerSDP.sdp = sdpSwapper.forceAudioCodecTo(offerSDP.sdp, mediaConstraints.audioCodec);
                     logger.log(LOG_ID, "SDP forced audio to " + mediaConstraints.audioCodec, offerSDP.sdp);    
+                }
+                else {
+                    if(mediaConstraints.opus && mediaConstraints.opus.useFEC) {
+                        offerSDP.sdp = sdpSwapper.addFECSupport(offerSDP.sdp);
+                        logger.log(LOG_ID, "SDP add FEC support to Opus", offerSDP.sdp);
+                    }
+
+                    if(mediaConstraints.opus && mediaConstraints.opus.useStereo) {
+                        offerSDP.sdp = sdpSwapper.addStereoSupport(offerSDP.sdp);
+                        logger.log(LOG_ID, "SDP add Stereo support to Opus", offerSDP.sdp);
+                    }
                 }
 
                 if(mediaConstraints.videoCodec && mediaConstraints.videoCodec !== 'VP8/90000') {
@@ -2227,6 +2334,7 @@ PeerConnection.prototype.createOffer = function(mediaConstraints) {
                     offerSDP.sdp = sdpSwapper.limitVideoBandwidthTo(offerSDP.sdp, mediaConstraints.videoBandwidth);
                     logger.log(LOG_ID, "SDP limited video to " + mediaConstraints.videoBandwidth, offerSDP.sdp);
                 }
+
             }
 
             var sdpMedia = sdpSwapper.getMediaInSDP(offerSDP.sdp);
@@ -2292,6 +2400,17 @@ PeerConnection.prototype.createAnswer = function(media, candidates, mediaConstra
                 answerSDP.sdp = sdpSwapper.forceAudioCodecTo(answerSDP.sdp, mediaConstraints.audioCodec);
                 logger.log(LOG_ID, "SDP forced audio to " + mediaConstraints.audioCodec, answerSDP.sdp);    
             }
+            else {
+                if(mediaConstraints.useFEC) {
+                    offerSDP.sdp = sdpSwapper.addFECSupport(offerSDP.sdp);
+                    logger.log(LOG_ID, "SDP add FEC support to Opus", offerSDP.sdp);
+                }
+
+                if(mediaConstraints.useStereo) {
+                    offerSDP.sdp = sdpSwapper.addStereoSupport(offerSDP.sdp);
+                    logger.log(LOG_ID, "SDP add Stereo support to Opus", offerSDP.sdp);
+                }
+            }
 
             if(mediaConstraints.videoCodec && mediaConstraints.videoCodec !== 'VP8/90000') {
                 answerSDP.sdp = sdpSwapper.forceVideoCodecTo(answerSDP.sdp, mediaConstraints.videoCodec);
@@ -2308,7 +2427,7 @@ PeerConnection.prototype.createAnswer = function(media, candidates, mediaConstra
                 logger.log(LOG_ID, "SDP limited video to " + mediaConstraints.videoBandwidth, answerSDP.sdp);
             }
         }
-        
+
         //answerSDP.sdp = preferOpus(answerSDP.sdp);
         that.setLocalDescription(answerSDP);
                   

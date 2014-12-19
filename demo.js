@@ -17,8 +17,13 @@ var codecUsed = null;
 var sono = null;
 var isAnswering = false;
 
+var parser = new UAParser();
+
 var videoBandwidth = 'full'
     audioBandwidth = 'full';
+
+var stereo = false,
+    fec = false;
 
 var graphAudio, graphVideo,
     legendAudio, legendVideo, 
@@ -675,8 +680,14 @@ function startCall() {
             audioCodec: audioCodec,
             videoCodec: videoCodec,
             audioBandwidth: audioBandwidth !== 'full' ? parseInt(audioBandwidth) : null,
-            videoBandwidth: videoBandwidth !== 'full' ? parseInt(videoBandwidth) : null
+            videoBandwidth: videoBandwidth !== 'full' ? parseInt(videoBandwidth) : null,
+            opus: {
+                useFEC: fec === 'on' ? true : false,
+                useStereo: stereo === 'on' ? true : false    
+            }
         };
+
+        console.log("DEMO :: Call constraints", constraints);
 
         sono.call(lastConnected.ID(), 'video', constraints);  
     }
@@ -718,10 +729,19 @@ function onDisplayOptions(e) {
     $('.webrtc-audio-bandwidth').val(audioBandwidth);
     $('.webrtc-video-bandwidth').val(videoBandwidth);
 
+    if(parser.getBrowser().name !== 'Chrome') {
+        $('.webrtc-audio-bandwidth').disable(true);
+        $('.webrtc-video-bandwidth').disable(true);
+        $('.webrtc-options-fec').disable(true);
+        $('.webrtc-options-stereo').disable(true); 
+    }
+
     $('.btn-save-options').one('click', function() {
         audioBandwidth = $('.webrtc-audio-bandwidth').val();
         videoBandwidth = $('.webrtc-video-bandwidth').val();
+        fec = $('.webrtc-options-fec').val();
+        stereo = $('.webrtc-options-stereo').val();
 
-        $('#webrtc-options').modal('hide')
+        $('#webrtc-options').modal('hide');
     });
 }

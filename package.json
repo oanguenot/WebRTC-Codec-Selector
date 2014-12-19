@@ -2,7 +2,7 @@
   "author": "Olivier Anguenot",
   "name": "WebRTCQuality",
   "description": "WebRTC tools for selecting and testing video and audio quality",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "homepage": "",
   "repository": {
     "type": "git",

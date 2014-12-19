@@ -248,6 +248,16 @@ position: absolute;
 	margin-left: 10px;
 }
 
+.webrtc-options-title {
+	margin-bottom: 20px;
+	margin-top: 30px;
+}
+
+.webrtc-options-opus {
+	font-weight: 700;
+	margin-left: 10px;
+}
+
 .webrtc-video-bandwidth, .webrtc-audio-bandwidth {
 	margin-left: 10px;
 }
