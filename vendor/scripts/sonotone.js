@@ -1588,7 +1588,7 @@ var findLineInRange = function findLineInRange(sdpLines, startLine, endLine, pre
         }
     }
     return null;
-}
+};
 
 // Gets the codec payload type from an a=rtpmap:X line.
 // https://github.com/muaz-khan/RTCMultiConnection/wiki/Bandwidth-Management
@@ -1811,6 +1811,8 @@ module.exports = {
 
 	chromeStat: function(items) {
 
+		logger.log(LOG_ID, "Chrome Stat", items);		
+
 		var stat = {
 			browser: 'chrome',
 			OUT_MIC: {
@@ -1923,6 +1925,8 @@ module.exports = {
 	},
 
 	firefoxStat: function(items) {
+
+		logger.log(LOG_ID, "Firefox Stat", items);
 
 		var stat = {
 			browser: 'firefox',
